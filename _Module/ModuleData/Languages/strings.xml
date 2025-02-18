@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<base xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" type="string">
+    <tags>
+        <tag language="English"/>
+    </tags>
+    <strings>
+        <string id="TFWCSexualOrientation" text="Sexual Orientation"/>
+        <string id="TFWCHeterosexual" text="Heterosexual"/>
+        <string id="TFWCBisexual" text="Bisexual"/>
+        <string id="TFWCHomosexual" text="Homosexual"/>
+    </strings>
+</base>

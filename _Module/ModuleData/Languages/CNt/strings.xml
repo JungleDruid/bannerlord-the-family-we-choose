@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<base xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" type="string">
+    <tags>
+        <tag language="繁體中文"/>
+    </tags>
+    <strings>
+        <string id="TFWCSexualOrientation" text="性傾向"/>
+        <string id="TFWCHeterosexual" text="異性戀"/>
+        <string id="TFWCBisexual" text="雙性戀"/>
+        <string id="TFWCHomosexual" text="同性戀"/>
+    </strings>
+</base>
