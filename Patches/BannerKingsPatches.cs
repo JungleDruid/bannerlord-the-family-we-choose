@@ -10,6 +10,7 @@ using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
+using TaleWorlds.LinQuick;
 using TaleWorlds.Localization;
 
 // ReSharper disable InconsistentNaming
@@ -25,23 +26,27 @@ public static class BannerKingsPatches
         SubModule.Instance.Logger.LogDebug($"Patching {originalMethod}");
         harmony.Patch(originalMethod,
             transpiler: AccessTools.Method(typeof(MarriageContractProposalVMRefreshValuesPatch), nameof(MarriageContractProposalVMRefreshValuesPatch.Transpiler)));
-        
+
         originalMethod = FindOnSessionLaunchedFlirtationLineDelegate();
         SubModule.Instance.Logger.LogDebug($"Patching {originalMethod}");
         harmony.Patch(originalMethod,
             transpiler: AccessTools.Method(typeof(CampaignSystemPatches.PlayerCanOpenCourtshipOnConditionPatch),
                 nameof(CampaignSystemPatches.PlayerCanOpenCourtshipOnConditionPatch.Transpiler)));
-        
+
         originalMethod = AccessTools.Method("BannerKings.Models.Vanilla.BKMarriageModel:IsMarriageAdequate");
         SubModule.Instance.Logger.LogDebug($"Patching {originalMethod}");
         harmony.Patch(originalMethod,
             transpiler: AccessTools.Method(typeof(IsMarriageAdequatePatch), nameof(IsMarriageAdequatePatch.Transpiler)));
 
+        originalMethod = PatchProcessor.GetOriginalInstructions(originalMethod).LastOrDefault(e => e.opcode == OpCodes.Ldftn)?.operand as MethodInfo;
+        harmony.Patch(originalMethod,
+            transpiler: AccessTools.Method(typeof(IsMarriageAdequatePatch), nameof(IsMarriageAdequatePatch.DelegateTranspiler)));
+
         originalMethod = AccessTools.Method("BannerKings.Behaviours.Marriage.BKMarriageBehavior:MakeSecondaryPartner");
         SubModule.Instance.Logger.LogDebug($"Patching {originalMethod}");
         harmony.Patch(originalMethod,
             prefix: AccessTools.Method(typeof(MakeSecondaryPartnerPatch), nameof(MakeSecondaryPartnerPatch.Prefix)));
-        
+
         return true;
     }
 
@@ -127,8 +132,42 @@ public static class BannerKingsPatches
 
             return matcher.InstructionEnumeration();
         }
+        
+        public static IEnumerable<CodeInstruction> DelegateTranspiler(IEnumerable<CodeInstruction> instructions)
+        {
+            CodeMatcher matcher = new(instructions);
+
+            MethodInfo isFemaleGetter = AccessTools.PropertyGetter(typeof(Hero), "IsFemale");
+
+            // bool flag18 = this.proposer.IsFemale == this.secondHero.IsFemale;
+            matcher.Start()
+                .MatchStartForward(
+                    CodeMatch.Calls(isFemaleGetter),
+                    new CodeMatch(OpCodes.Ceq))
+                .MatchStartBackwards(CodeMatch.IsLdarg())
+                .Advance(-1)
+                .MatchStartBackwards(CodeMatch.IsLdarg());
+
+            var firstHeroInstructions = matcher.Instructions(2);
+            var storeLocalOperand = (LocalBuilder)matcher.MatchStartForward(CodeMatch.StoresLocal()).Operand;
+            matcher.MatchStartForward(CodeMatch.LoadsLocal())
+                .Insert([
+                    CodeInstruction.LoadLocal(storeLocalOperand.LocalIndex),
+                    ..firstHeroInstructions,
+                    CodeInstruction.Call(typeof(IsMarriageAdequatePatch), nameof(SameSexMarriageCheck)),
+                    CodeInstruction.StoreLocal(storeLocalOperand.LocalIndex)
+                ]);
+
+            return matcher.InstructionEnumeration();
+        }
 
         private static float ConsortPenalty() => SubModule.Instance.CampaignSettings.ConsortPenalty;
+
+        private static bool SameSexMarriageCheck(bool result, Hero proposer)
+        {
+            if (!result || proposer != Hero.MainHero) return result;
+            return SubModule.Instance.CampaignSettings.SexualOrientation == SexualOrientation.Heterosexual;
+        }
     }
 
     // [HarmonyPatch("BannerKings.Behaviours.Marriage.BKMarriageBehavior:MakeSecondaryPartner")]
