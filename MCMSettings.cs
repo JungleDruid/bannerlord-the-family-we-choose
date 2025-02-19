@@ -27,7 +27,9 @@ internal static class MCMSettings
                 .SetGroupOrder(0)
                 .AddDropdown("sexual_orientation", "{=TFWCSexualOrientation}Sexual Orientation", 0,
                     new StorageRef(settings.SexualOrientationDropdown),
-                    propBuilder => propBuilder.SetOrder(0));
+                    propBuilder => propBuilder.SetOrder(0))
+                .AddBool("remove_cooldown", "{=TFWCRemoveCooldown}Remove Cooldown", new PropertyRef(typeof(Settings).Property("RemoveCooldown"), settings),
+                    propBuilder => propBuilder.SetOrder(1).SetHintText("{=TFWCRemoveCooldownHint}Remove cooldown between courtships."));
 
         void BuildBannerKingsGroup(ISettingsPropertyGroupBuilder builder)
             => builder

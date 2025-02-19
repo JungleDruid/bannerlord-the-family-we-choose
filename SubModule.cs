@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Reflection;
 using Bannerlord.ButterLib.Common.Extensions;
 using HarmonyLib;
@@ -55,7 +56,14 @@ public class SubModule : MBSubModuleBase
         if (_debugStart) return;
 #endif
         Logger.LogInformation($"{Name} {Version} starting up...");
-        _hasBannerKings = BannerKingsPatches.PatchAll(Harmony);
+        try
+        {
+            _hasBannerKings = BannerKingsPatches.PatchAll(Harmony);
+        }
+        catch (FileNotFoundException)
+        {
+        }
+
         _fluentGlobalSettings = MCMSettings.AddSettings(GlobalSettings, _hasBannerKings).BuildAsGlobal();
         _fluentGlobalSettings.Register();
     }
@@ -81,6 +89,8 @@ public class SubModule : MBSubModuleBase
 
         if (superKey && Input.IsKeyPressed(InputKey.O))
         {
+            _logger = null;
+            _logger.IsEnabled(LogLevel.Critical);
             // refresh MCM menu
             if (_fluentGlobalSettings is null) return;
             _fluentGlobalSettings.Unregister();
@@ -104,6 +114,15 @@ public class SubModule : MBSubModuleBase
         ISettingsBuilder builder = MCMSettings.AddSettings(CampaignSettings, _hasBannerKings);
         _fluentPerCampaignSettings = builder.BuildAsPerCampaign();
         _fluentPerCampaignSettings?.Register();
+    }
+
+    protected override void OnGameStart(Game game, IGameStarter gameStarterObject)
+    {
+        if (gameStarterObject is not CampaignGameStarter campaignGameStarter) return;
+        if (_hasBannerKings)
+        {
+            BannerKingsPatches.AddDialogues(campaignGameStarter);
+        }
     }
 
     public override void OnGameEnd(Game game)

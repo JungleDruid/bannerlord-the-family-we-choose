@@ -5,11 +5,14 @@ using System.Reflection.Emit;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.GameComponents;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.SceneInformationPopupTypes;
 using TaleWorlds.Core;
 
+// ReSharper disable InconsistentNaming
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 
@@ -88,6 +91,7 @@ public static class CampaignSystemPatches
         }
     }
 
+    // force the main hero to be the first hero
     [HarmonyPatch(typeof(CampaignEventDispatcher), nameof(CampaignEventDispatcher.OnHeroesMarried))]
     public static class CampaignEventDispatcherOnHeroesMarriedPatch
     {
@@ -99,6 +103,7 @@ public static class CampaignSystemPatches
         }
     }
 
+    // patch the second hero's equipment to be civilian equipment
     [HarmonyPatch(typeof(MarriageSceneNotificationItem), nameof(MarriageSceneNotificationItem.GetSceneNotificationCharacters))]
     public static class MarriageSceneNotificationItemGetSceneNotificationCharactersPatch
     {
@@ -124,5 +129,44 @@ public static class CampaignSystemPatches
         {
             return instance.BrideHero.CivilianEquipment.Clone();
         }
+    }
+
+    [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.IsSuitableForMarriage))]
+    public static class IsSuitableForMarriagePatch
+    {
+        public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            CodeMatcher matcher = new(instructions);
+
+            matcher.MatchStartForward(CodeMatch.Calls(AccessTools.PropertyGetter(typeof(MobileParty), nameof(MobileParty.Army))))
+                .SetOperandAndAdvance(AccessTools.Method(typeof(IsSuitableForMarriagePatch), nameof(NullArmy)));
+
+            if (matcher.Start().MatchStartForward(CodeMatch.Calls(AccessTools.PropertyGetter(typeof(Hero), nameof(Hero.Spouse)))).IsValid)
+            {
+                matcher.SetInstruction(CodeInstruction.Call(typeof(IsSuitableForMarriagePatch), nameof(NullSpouse)));
+            }
+
+            return matcher.InstructionEnumeration();
+        }
+
+        public static Army NullArmy(MobileParty _) => null;
+        public static Hero NullSpouse(Hero _) => null;
+    }
+
+    [HarmonyPatch(typeof(RomanceCampaignBehavior), "get_RomanceCourtshipAttemptCooldown")]
+    public static class RomanceCourtshipAttemptCooldownPatch
+    {
+        public static bool Prefix(ref CampaignTime __result)
+        {
+            if (!SubModule.Instance.CampaignSettings.RemoveCooldown) return true;
+            __result = CampaignTime.DaysFromNow(1);
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(MarriageAction), "HandleClanChangeAfterMarriageForHero")]
+    public static class HandleClanChangeAfterMarriageForHeroPatch
+    {
+        public static bool Prefix(Hero hero, Clan clanAfterMarriage) => hero.Clan != clanAfterMarriage;
     }
 }
