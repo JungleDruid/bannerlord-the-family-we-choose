@@ -28,6 +28,7 @@
         <DependedModuleMetadata id="Sandbox" order="LoadBeforeThis"/>
         <DependedModuleMetadata id="StoryMode" order="LoadBeforeThis"/>
         <DependedModuleMetadata id="CustomBattle" order="LoadBeforeThis"/>
+        <DependedModuleMetadata id="BannerKings" order="LoadBeforeThis"/>
     </DependedModuleMetadatas>
     <!-- Community Dependency Metadata -->
     <SubModules>

@@ -29,8 +29,8 @@ public class SubModule : MBSubModuleBase
     public static SubModule Instance { get; private set; }
     [CanBeNull] private FluentGlobalSettings _fluentGlobalSettings;
     [CanBeNull] private FluentPerCampaignSettings _fluentPerCampaignSettings;
-    internal Settings GlobalSettings { get; private set; } = new();
-    internal Settings CampaignSettings { get; private set; } = new();
+    private Settings GlobalSettings { get; } = new();
+    internal Settings CampaignSettings { get; private set; }
     private bool _hasBannerKings;
 
     private void OnServiceRegistration()
@@ -100,7 +100,8 @@ public class SubModule : MBSubModuleBase
         if (game.GameType is not Campaign) return;
         _fluentPerCampaignSettings?.Unregister();
         _fluentGlobalSettings?.Unregister();
-        ISettingsBuilder builder = MCMSettings.AddSettings(CampaignSettings, _hasBannerKings, GlobalSettings);
+        CampaignSettings = new Settings(GlobalSettings);
+        ISettingsBuilder builder = MCMSettings.AddSettings(CampaignSettings, _hasBannerKings);
         _fluentPerCampaignSettings = builder.BuildAsPerCampaign();
         _fluentPerCampaignSettings?.Register();
     }

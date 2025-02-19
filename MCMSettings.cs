@@ -1,5 +1,4 @@
 using HarmonyLib;
-using MCM.Abstractions.Base;
 using MCM.Abstractions.FluentBuilder;
 using MCM.Common;
 using TaleWorlds.Localization;
@@ -11,7 +10,7 @@ internal static class MCMSettings
     private static string SettingsId => SubModule.Name;
     private static string SettingsName => $"{new TextObject("{=TFWCTitle}The Family We Choose")} {SubModule.Version.ToString(3)}";
 
-    public static ISettingsBuilder AddSettings(Settings settings, bool hasBannerKings, Settings defaultSettings = null)
+    public static ISettingsBuilder AddSettings(Settings settings, bool hasBannerKings)
     {
         ISettingsBuilder settingsBuilder = BaseSettingsBuilder
             .Create(SettingsId, SettingsName)!
@@ -20,15 +19,6 @@ internal static class MCMSettings
             .CreateGroup("{=TFWCMain}Main", BuildMainGroup);
 
         if (hasBannerKings) settingsBuilder.CreateGroup("Banner Kings", BuildBannerKingsGroup);
-
-        if (defaultSettings != null)
-        {
-            settingsBuilder.CreatePreset(BaseSettings.DefaultPresetId, BaseSettings.DefaultPresetName,
-                builder => builder
-                    .SetPropertyValue("sexual_orientation", defaultSettings.SexualOrientationDropdown.Clone())
-                    .SetPropertyValue("allow_consort", defaultSettings.AllowConsort)
-                    .SetPropertyValue("consort_penalty", defaultSettings.ConsortPenalty));
-        }
 
         return settingsBuilder;
 
